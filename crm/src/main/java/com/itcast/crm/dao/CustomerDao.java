@@ -20,7 +20,7 @@ public interface CustomerDao extends JpaRepository<Customer, Integer>{
   
   List<Customer>findByFixedAreaIdIsNull();
   
-  //关联传进来的定区id到customer中,完成逻辑上的两者关联
+  //关联传进来的定区id到customer中
   @Modifying
   @Query(value="update Customer set fixedAreaId=?1 where id=?2")
    void assignCustomer2fixedArea(String fixedAreaId, Integer customerId);
