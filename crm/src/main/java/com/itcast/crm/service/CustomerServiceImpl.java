@@ -1,4 +1,4 @@
-package com.itcast.crm.service;
+﻿package com.itcast.crm.service;
 /**
 *@author Fuzongqiang
 *@version Date:2017年9月22日下午1:27:20
@@ -45,7 +45,7 @@ public class CustomerServiceImpl implements CustomerService {
         public void  regist(Customer customer) {
            dao.save(customer);
         }
-       //通过i电话返回一个对象
+       //通过电话查找对应的用户
         public Customer findByTelephone(String telephone) {
           // TODO Auto-generated method stub
           return dao.findByTelephone(telephone);
