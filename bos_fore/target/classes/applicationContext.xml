@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+			xmlns:context="http://www.springframework.org/schema/context"
+			xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:tx="http://www.springframework.org/schema/tx"
+			xmlns:jpa="http://www.springframework.org/schema/data/jpa" xmlns:task="http://www.springframework.org/schema/task"
+			xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:soap="http://cxf.apache.org/bindings/soap"
+			xsi:schemaLocation="
+								http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+								http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+								http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+								http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+								http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+								http://www.springframework.org/schema/data/jpa 
+								http://www.springframework.org/schema/data/jpa/spring-jpa-1.3.xsd
+								http://cxf.apache.org/bindings/soap 
+							http://cxf.apache.org/schemas/configuration/soap.xsd
+							http://cxf.apache.org/jaxws 
+							http://cxf.apache.org/schemas/jaxws.xsd">
+							
+							<!--在这个前端的webserice中不需要链接数据库(而是调用webservicecrm,让crm去访问数据库)所以其他的不用写
+				#########################################################
+				指定Spring进行扫描的包，如果该包中的类使用了@Component @Controller@Service等注解，会把这些类注册为bean
+				不要扫描DAO ！！！！DAO包下的类要使用Spring Data JPA框架进行扫描
+				#########################################################
+			-->
+			
+			<!-- jedis链接池的配置 -->
+			<bean id="poolConfig" class="redis.clients.jedis.JedisPoolConfig">
+			 <property name="TestOnBorrow" value="true"></property><!-- 是否允许检测链接池中链接的可用性 -->
+			 
+			 <property name="maxWaitMillis" value="3000"  ></property><!-- 最长等待时间 -->
+			 <property name="maxIdle" value="300"></property><!-- 最大的空闲数量 -->
+			</bean>
+			<!-- jedis 连接工厂 -->
+		<!--
+			#############################根据实际情况修改Redis服务器地址和端口号#############################
+		-->
+			<bean id="redisConnectionFactoty" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
+			   <property name="hostName" value="localhost"></property>
+			  <!--  <property name="password" value=""></property> -->
+			  <property name="poolConfig" ref="poolConfig"></property>
+			  <property name="port" value="6379"></property>
+			</bean>
+			
+				<!-- spring data 提供的 redis模板 -->
+		<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
+		   <property name="connectionFactory"  ref="redisConnectionFactoty"></property>
+		   
+		   <property name="keySerializer">
+		   <bean class="org.springframework.data.redis.serializer.StringRedisSerializer" > </bean><!-- 实际上是设为utf-8 -->
+		   </property>
+		   
+		   <property name="valueSerializer">
+		   <bean class="org.springframework.data.redis.serializer.StringRedisSerializer"></bean>
+		   </property>
+		   
+		</bean>
+			
+			<context:component-scan base-package="com.itcast.bos.fore.web"/>
+			<!--注册cxf客户端的访问,通过url访问从入门服务  -->
+			<jaxws:client id="myForeClient" address="http://localhost:8180/crm/crmservice/customer" 
+ serviceClass="com.itcast.bos.fore.utils.service.CustomerService">
+ </jaxws:client>
+ 
+			<!--注册后台的代理对象  -->
+			<jaxws:client id="orderClient" address="http://localhost:8080/bos_managerment_web/orderservice/order" 
+ serviceClass="com.itcast.bos.service.take_delivery.OrderService">
+ </jaxws:client>
+ 
+ <!--
+			################################# 指定ActiveMQ 连接工厂 ########################################
+			真正可以产生Connection的ConnectionFactory，由对应的 JMS服务厂商提供
+		-->
+		<bean id="amqConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+			<constructor-arg index="0" value="admin"></constructor-arg>
+			<constructor-arg index="1" value="admin"></constructor-arg>
+			<constructor-arg index="2" value="tcp://localhost:61616"></constructor-arg>
+		</bean>
+		<!--
+			################################# 指定Spring Caching连接工厂 #################################
+		-->
+		<bean id="connectionFactory"
+			class="org.springframework.jms.connection.CachingConnectionFactory">
+			<!-- 目标ConnectionFactory对应真实的可以产生JMS Connection的ConnectionFactory -->
+			<property name="targetConnectionFactory" ref="amqConnectionFactory"></property>
+			<!-- Session缓存数量 -->
+			<property name="sessionCacheSize" value="100" />
+		</bean>
+ <!--
+			################################# 指定消息的生产者 #################################
+		-->
+		<bean id="jmsQueueTemplate" class="org.springframework.jms.core.JmsTemplate">
+			<!-- 这个connectionFactory对应的是我们定义的Spring提供的那个ConnectionFactory对象 -->
+			<constructor-arg ref="connectionFactory" />
+			<!-- 定义JmsTemplate的Queue类型 -->
+			<!--true : 发布/订阅模式 -->
+			<!--false : 队列模式 -->
+			<property name="pubSubDomain" value="false" />
+		</bean>
+</beans>
