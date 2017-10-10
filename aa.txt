@@ -1,1 +1,2 @@
 qqo de cpm.tm
+public  class firstClass
