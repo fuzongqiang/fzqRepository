@@ -1,2 +1,5 @@
 qqo de cpm.tm
 public  class firstClass
+ void  test(){
+system .out .println("²âÊÔ´úÂëµÄpullºÍcommit");
+}
